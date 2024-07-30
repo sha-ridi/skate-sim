@@ -44,6 +44,8 @@ class SKATESIM_API ASkateSimCharacterBase : public ACharacter
 public:
 	ASkateSimCharacterBase();
 
+	virtual void Tick(float DeltaTime) override;
+
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/

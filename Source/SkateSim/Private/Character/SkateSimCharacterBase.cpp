@@ -63,6 +63,19 @@ void ASkateSimCharacterBase::BeginPlay()
 	}	
 }
 
+void ASkateSimCharacterBase::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	// Set Correct Skate Rotation To Align With Animations
+	if(Skate)
+	{
+		float CapsuleYaw = GetCapsuleComponent()->GetComponentRotation().Yaw;
+		FRotator NewRotation = FRotator(0.f, CapsuleYaw + 90.f, 0.f);
+		Skate->SetWorldRotation(NewRotation);
+	}
+}
+
 void ASkateSimCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	// Set up action bindings
