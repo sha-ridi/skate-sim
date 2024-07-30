@@ -46,6 +46,10 @@ ASkateSimCharacterBase::ASkateSimCharacterBase()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
+	CurrentVelocity = FVector::ZeroVector;
+	DecelerationRate = 1.0f;
+	PushImpulseStrength = 500.0f; 
+
 	Skate = CreateDefaultSubobject<UStaticMeshComponent>("Skate Mesh");
 	Skate->SetupAttachment(GetMesh(), FName("SkateSocket"));
 }
@@ -74,6 +78,13 @@ void ASkateSimCharacterBase::Tick(float DeltaTime)
 		FRotator NewRotation = FRotator(0.f, CapsuleYaw + 90.f, 0.f);
 		Skate->SetWorldRotation(NewRotation);
 	}
+
+	// Decrease Velocity
+	 if (!CurrentVelocity.IsZero())
+    {
+        AddMovementInput(CurrentVelocity.GetSafeNormal(), CurrentVelocity.Size() * DeltaTime);
+        CurrentVelocity = FMath::VInterpTo(CurrentVelocity, FVector::ZeroVector, DeltaTime, DecelerationRate);
+    }
 }
 
 void ASkateSimCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -90,6 +101,9 @@ void ASkateSimCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerIn
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ASkateSimCharacterBase::Look);
+
+		// Pushing
+		EnhancedInputComponent->BindAction(PushAction, ETriggerEvent::Started, this, &ASkateSimCharacterBase::Push);
 	}
 }
 
@@ -113,6 +127,10 @@ void ASkateSimCharacterBase::Move(const FInputActionValue& Value)
 		// add movement 
 		AddMovementInput(ForwardDirection, MovementVector.Y);
 		AddMovementInput(RightDirection, MovementVector.X);
+
+		FVector Impulse = (ForwardDirection * MovementVector.Y + RightDirection * MovementVector.X) * 100.0f;
+		CurrentVelocity += Impulse;
+
 	}
 }
 
@@ -127,4 +145,18 @@ void ASkateSimCharacterBase::Look(const FInputActionValue& Value)
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
+}
+
+void ASkateSimCharacterBase::Push(const FInputActionValue& Value)
+{
+	if (Controller != nullptr)
+    {
+        const FRotator Rotation = Controller->GetControlRotation();
+        const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+        const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+
+        FVector Impulse = ForwardDirection * PushImpulseStrength;
+        CurrentVelocity += Impulse;
+    }	
 }

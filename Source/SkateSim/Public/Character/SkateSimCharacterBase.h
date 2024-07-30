@@ -41,6 +41,10 @@ class SKATESIM_API ASkateSimCharacterBase : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LookAction;
 
+	/** Push Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* PushAction;	
+
 public:
 	ASkateSimCharacterBase();
 
@@ -58,10 +62,18 @@ protected:
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 
+	/** Called for pushing input */
+	void Push(const FInputActionValue& Value);
+
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual void BeginPlay() override;
 
 	UPROPERTY(EditAnywhere, Category = "Equipment")
 	TObjectPtr<UStaticMeshComponent> Skate;
+
+private:
+    FVector CurrentVelocity;
+    float DecelerationRate;
+    float PushImpulseStrength;
 };
