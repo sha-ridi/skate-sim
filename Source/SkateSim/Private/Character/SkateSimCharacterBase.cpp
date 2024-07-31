@@ -52,6 +52,9 @@ ASkateSimCharacterBase::ASkateSimCharacterBase()
 
 	Skate = CreateDefaultSubobject<UStaticMeshComponent>("Skate Mesh");
 	Skate->SetupAttachment(GetMesh(), FName("SkateSocket"));
+
+	JumpedOverCount = 0;
+	JumpFailedCount = 0;
 }
 
 void ASkateSimCharacterBase::BeginPlay()
@@ -130,7 +133,6 @@ void ASkateSimCharacterBase::Move(const FInputActionValue& Value)
 
 		FVector Impulse = (ForwardDirection * MovementVector.Y + RightDirection * MovementVector.X) * 100.0f;
 		CurrentVelocity += Impulse;
-
 	}
 }
 
@@ -159,4 +161,24 @@ void ASkateSimCharacterBase::Push(const FInputActionValue& Value)
         FVector Impulse = ForwardDirection * PushImpulseStrength;
         CurrentVelocity += Impulse;
     }	
+}
+
+int32 ASkateSimCharacterBase::GetJumpFailedCount()
+{
+	return JumpFailedCount;
+}
+
+int32 ASkateSimCharacterBase::GetJumpedOverCount()
+{
+	return JumpedOverCount;
+}
+
+void ASkateSimCharacterBase::IncrementJumpFailed()
+{
+	JumpFailedCount++;
+}
+
+void ASkateSimCharacterBase::IncrementJumpedOver()
+{
+	JumpedOverCount++;
 }

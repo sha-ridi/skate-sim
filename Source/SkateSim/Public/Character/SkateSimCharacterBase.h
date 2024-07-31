@@ -55,6 +55,12 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
+	int32 GetJumpFailedCount();
+	int32 GetJumpedOverCount();
+
+	void IncrementJumpFailed();
+	void IncrementJumpedOver();
+
 protected:
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
@@ -75,5 +81,8 @@ protected:
 private:
     FVector CurrentVelocity;
     float DecelerationRate;
-    float PushImpulseStrength;
+    float PushImpulseStrength;	
+
+	int32 JumpedOverCount;
+	int32 JumpFailedCount;	
 };
