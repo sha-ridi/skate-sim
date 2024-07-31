@@ -45,6 +45,10 @@ class SKATESIM_API ASkateSimCharacterBase : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* PushAction;	
 
+    /** Slowdown Input Action */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+    UInputAction* SlowdownAction;
+
 public:
 	ASkateSimCharacterBase();
 
@@ -71,6 +75,9 @@ protected:
 	/** Called for pushing input */
 	void Push(const FInputActionValue& Value);
 
+    /** Called for slowing down input */
+    void Slowdown(const FInputActionValue& Value);	
+
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual void BeginPlay() override;
@@ -78,10 +85,19 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Equipment")
 	TObjectPtr<UStaticMeshComponent> Skate;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "States")
+	bool bPush;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "States")
+	bool bSlowDown;
+
 private:
     FVector CurrentVelocity;
+	float MaxSpeed;
+    float AccelerationRate;
     float DecelerationRate;
-    float PushImpulseStrength;	
+    float PushImpulseStrength;
+	float SlowdownFactor;
 
 	int32 JumpedOverCount;
 	int32 JumpFailedCount;	

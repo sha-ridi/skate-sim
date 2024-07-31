@@ -30,7 +30,7 @@ ASkateSimCharacterBase::ASkateSimCharacterBase()
 	// instead of recompiling to adjust them
 	GetCharacterMovement()->JumpZVelocity = 700.f;
 	GetCharacterMovement()->AirControl = 0.35f;
-	GetCharacterMovement()->MaxWalkSpeed = 500.f;
+	GetCharacterMovement()->MaxWalkSpeed = 400.f;
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
@@ -47,8 +47,11 @@ ASkateSimCharacterBase::ASkateSimCharacterBase()
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
 	CurrentVelocity = FVector::ZeroVector;
-	DecelerationRate = 1.0f;
-	PushImpulseStrength = 500.0f; 
+	MaxSpeed = 400.0f;
+    AccelerationRate = 2000.0f;
+	DecelerationRate = 0.5f;
+	PushImpulseStrength = 4000.0f; 
+	SlowdownFactor = 0.f;
 
 	Skate = CreateDefaultSubobject<UStaticMeshComponent>("Skate Mesh");
 	Skate->SetupAttachment(GetMesh(), FName("SkateSocket"));
@@ -72,21 +75,24 @@ void ASkateSimCharacterBase::BeginPlay()
 
 void ASkateSimCharacterBase::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
+    Super::Tick(DeltaTime);
 
-	// Set Correct Skate Rotation To Align With Animations
-	if(Skate)
-	{
-		float CapsuleYaw = GetCapsuleComponent()->GetComponentRotation().Yaw;
-		FRotator NewRotation = FRotator(0.f, CapsuleYaw + 90.f, 0.f);
-		Skate->SetWorldRotation(NewRotation);
-	}
+    // Set Correct Skate Rotation To Align With Animations
+    if(Skate)
+    {
+        float CapsuleYaw = GetCapsuleComponent()->GetComponentRotation().Yaw;
+        FRotator NewRotation = FRotator(0.f, CapsuleYaw + 90.f, 0.f);
+        Skate->SetWorldRotation(NewRotation);
+    }
 
-	// Decrease Velocity
-	 if (!CurrentVelocity.IsZero())
+    // Decrease Velocity
+    if (!CurrentVelocity.IsZero())
     {
         AddMovementInput(CurrentVelocity.GetSafeNormal(), CurrentVelocity.Size() * DeltaTime);
         CurrentVelocity = FMath::VInterpTo(CurrentVelocity, FVector::ZeroVector, DeltaTime, DecelerationRate);
+        
+        // Update MaxWalkSpeed to match current speed
+        GetCharacterMovement()->MaxWalkSpeed = CurrentVelocity.Size();
     }
 }
 
@@ -107,33 +113,39 @@ void ASkateSimCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerIn
 
 		// Pushing
 		EnhancedInputComponent->BindAction(PushAction, ETriggerEvent::Started, this, &ASkateSimCharacterBase::Push);
+		EnhancedInputComponent->BindAction(PushAction, ETriggerEvent::Completed, this, &ASkateSimCharacterBase::Push);
+
+		// Slowdowning
+		EnhancedInputComponent->BindAction(SlowdownAction, ETriggerEvent::Started, this, &ASkateSimCharacterBase::Slowdown);
+		EnhancedInputComponent->BindAction(SlowdownAction, ETriggerEvent::Completed, this, &ASkateSimCharacterBase::Slowdown);
 	}
 }
 
 void ASkateSimCharacterBase::Move(const FInputActionValue& Value)
 {
-	// input is a Vector2D
-	FVector2D MovementVector = Value.Get<FVector2D>();
+    // input is a Vector2D
+    FVector2D MovementVector = Value.Get<FVector2D>();
 
-	if (Controller != nullptr)
-	{
-		// find out which way is forward
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
+    if (Controller != nullptr)
+    {
+        // find out which way is forward
+        const FRotator Rotation = Controller->GetControlRotation();
+        const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-		// get forward vector
-		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-	
-		// get right vector 
-		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+        // get forward vector
+        const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+    
+        // get right vector 
+        const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-		// add movement 
-		AddMovementInput(ForwardDirection, MovementVector.Y);
-		AddMovementInput(RightDirection, MovementVector.X);
+        // apply movement
+        FVector Impulse = (ForwardDirection * MovementVector.Y + RightDirection * MovementVector.X) * AccelerationRate * GetWorld()->GetDeltaSeconds();
+        CurrentVelocity = FVector(FMath::Clamp(CurrentVelocity.X + Impulse.X, -MaxSpeed, MaxSpeed),
+        FMath::Clamp(CurrentVelocity.Y + Impulse.Y, -MaxSpeed, MaxSpeed), CurrentVelocity.Z);
 
-		FVector Impulse = (ForwardDirection * MovementVector.Y + RightDirection * MovementVector.X) * 100.0f;
-		CurrentVelocity += Impulse;
-	}
+        // Update MaxWalkSpeed based on CurrentVelocity
+        GetCharacterMovement()->MaxWalkSpeed = CurrentVelocity.Size();
+    }
 }
 
 void ASkateSimCharacterBase::Look(const FInputActionValue& Value)
@@ -151,7 +163,7 @@ void ASkateSimCharacterBase::Look(const FInputActionValue& Value)
 
 void ASkateSimCharacterBase::Push(const FInputActionValue& Value)
 {
-	if (Controller != nullptr)
+    if (Controller != nullptr && !bPush)
     {
         const FRotator Rotation = Controller->GetControlRotation();
         const FRotator YawRotation(0, Rotation.Yaw, 0);
@@ -160,7 +172,22 @@ void ASkateSimCharacterBase::Push(const FInputActionValue& Value)
 
         FVector Impulse = ForwardDirection * PushImpulseStrength;
         CurrentVelocity += Impulse;
-    }	
+
+        // Ensure MaxWalkSpeed is updated to allow for higher speeds
+        GetCharacterMovement()->MaxWalkSpeed = FMath::Clamp(CurrentVelocity.Size(), MaxSpeed, 800.0f);        
+    }
+
+    bPush = Value.Get<bool>();
+}
+
+void ASkateSimCharacterBase::Slowdown(const FInputActionValue& Value)
+{
+    if (Controller != nullptr && !bSlowDown)
+    {
+        CurrentVelocity *= SlowdownFactor;		
+    }
+
+	bSlowDown = Value.Get<bool>();
 }
 
 int32 ASkateSimCharacterBase::GetJumpFailedCount()
