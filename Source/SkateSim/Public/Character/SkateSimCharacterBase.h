@@ -59,7 +59,10 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
+	UFUNCTION(BlueprintCallable)
 	int32 GetJumpFailedCount();
+	
+	UFUNCTION(BlueprintCallable)	
 	int32 GetJumpedOverCount();
 
 	void IncrementJumpFailed();
