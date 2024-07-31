@@ -48,7 +48,7 @@ void AObstacleBase::OnFailBoxBeginOverlap(UPrimitiveComponent* OverlappedCompone
 void AObstacleBase::OnSuccessBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, 
 	int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
-	bFailBoxOverlapped = false;
+	
 }
 
 void AObstacleBase::OnSuccessBoxEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, 
@@ -72,7 +72,7 @@ void AObstacleBase::OnSuccessBoxEndOverlap(UPrimitiveComponent* OverlappedCompon
 	// Reset values
 	bFailBoxOverlapped = false;
 	bSuccessBoxOverlapped = false;
-	
+
 	UE_LOG(LogTemp, Display, TEXT("S %d F %d"), Player->GetJumpedOverCount(), Player->GetJumpFailedCount());
 }
 
