@@ -7,10 +7,6 @@
 
  Here is [link to the game build](https://drive.google.com/file/d/1QIBApIzOy5zhK8G7sueIMdW-gGKnQOob/view?usp=sharing).
 
-  ## Video Pitch
-
- Here is [link to the video]( https://www.youtube.com/watch?v=eAsCRDl-Wl4&ab_channel=DinaSharipova).
-
 
 
 
